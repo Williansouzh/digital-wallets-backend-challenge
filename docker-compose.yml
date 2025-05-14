@@ -1,0 +1,6 @@
+services:
+  digitalwallets.api:
+    image: ${DOCKER_REGISTRY-}digitalwalletsapi
+    build:
+      context: .
+      dockerfile: DigitalWallets.API/Dockerfile
