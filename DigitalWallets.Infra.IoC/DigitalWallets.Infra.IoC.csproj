@@ -6,4 +6,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.OpenApi" Version="1.6.24" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DigitalWallets.Application\DigitalWallets.Application.csproj" />
+    <ProjectReference Include="..\DigitalWallets.Domain\DigitalWallets.Domain.csproj" />
+    <ProjectReference Include="..\DigitalWallets.Infra.Data\DigitalWallets.Infra.Data.csproj" />
+  </ItemGroup>
+
 </Project>
