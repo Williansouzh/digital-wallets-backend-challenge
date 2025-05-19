@@ -1,13 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using DigitalWallets.Domain.Interfaces.Repositories;
 
-namespace DigitalWallets.Domain.Interfaces.Services;
-
-public interface IUnitOfWork
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
-    //IAnimalRepository AnimalRepository { get; }
-    Task<int> CommitAsync();
+    IWalletRepository WalletRepository { get; }
+    Task<int> CommitAsync(CancellationToken cancellationToken = default);
 }

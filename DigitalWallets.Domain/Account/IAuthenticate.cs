@@ -2,6 +2,7 @@
 
 public interface IAuthenticate
 {
+
     Task<bool> RegisterUser(string email, string password, string role, string name, string lastName, string phone);
     Task<AuthUser> Authenticate(string email, string password);
     Task Logout();

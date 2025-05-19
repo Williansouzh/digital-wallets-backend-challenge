@@ -2,20 +2,20 @@
 
 namespace DigitalWallets.Domain.Entities;
 
-public class Wallet
+public class Wallet : Entity
 {
-    public Guid Id { get; private set; }
     public decimal Balance { get; private set; }
     public Guid UserId { get; private set; }
-
+    public AuthUser User { get; private set; }
     protected Wallet() { }
 
-    public Wallet(Guid userId, decimal initialBalance = 0)
+    public Wallet(Guid userId, decimal initialBalance = 0, Guid? id = null)
     {
-        Id = Guid.NewGuid();
+        Id = id ?? Guid.NewGuid();
         ValidateDomain(userId, initialBalance);
         ApplyState(userId, initialBalance);
     }
+
 
     private void ValidateDomain(Guid userId, decimal initialBalance)
     {

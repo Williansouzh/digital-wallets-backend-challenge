@@ -22,9 +22,8 @@ public class WalletEntityConfiguration : IEntityTypeConfiguration<Wallet>
         entity.Property(w => w.UserId)
               .IsRequired();
 
-        // ✅ Relacionamento com ApplicationUser definido apenas aqui
         entity.HasOne<ApplicationUser>()
-              .WithOne(u => u.Wallet)
+              .WithOne()
               .HasForeignKey<Wallet>(w => w.UserId)
               .OnDelete(DeleteBehavior.Cascade);
 

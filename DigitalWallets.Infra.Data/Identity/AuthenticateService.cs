@@ -1,8 +1,9 @@
-﻿using System.IO;
+﻿
 using System.Security.Authentication;
 using System.Security.Claims;
 using DigitalWallets.Domain.Account;
-using DigitalWallets.Infra.Data.Exceptions;
+using DigitalWallets.Domain.Entities;
+using DigitalWallets.Domain.Interfaces.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -16,12 +17,15 @@ public class AuthenticateService : IAuthenticate
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
     ILogger<AuthenticateService> _logger;
+    private readonly IWalletRepository _walletRepository;
+    private readonly ITransactionRepository _transactionRepository;
     public AuthenticateService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         RoleManager<IdentityRole<Guid>> roleManager,
-
+        IWalletRepository walletRepository,
         ILogger<AuthenticateService> logger,
+        ITransactionRepository transactionRepository,
         IHttpContextAccessor httpContextAccessor)
     {
         _roleManager = roleManager;
@@ -29,6 +33,8 @@ public class AuthenticateService : IAuthenticate
         _signInManager = signInManager;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
+        _walletRepository = walletRepository;
+        _transactionRepository = transactionRepository;
     }
     public async Task<bool> RegisterUser(string email, string password, string role, string name, string lastName, string phone)
     {
@@ -48,6 +54,10 @@ public class AuthenticateService : IAuthenticate
             _logger.LogWarning("User registration failed: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
             return false;
         }
+        //Create Wallet
+        var wallet = new Wallet(user.Id, 0); // saldo inicial 0
+
+        await _walletRepository.AddAsync(wallet);
 
         if (!await _roleManager.RoleExistsAsync(role))
         {
@@ -63,8 +73,20 @@ public class AuthenticateService : IAuthenticate
 
         await _userManager.AddToRoleAsync(user, role);
 
+        //Add first transaction 
+        var transaction = await Transaction.Create(
+            0,
+            "Wallet created",
+            DateTime.UtcNow,
+            user.Id,
+            user,
+            Guid.Empty,
+            null
+        );
+
         return true;
     }
+
     public async Task<AuthUser> Authenticate(string email, string password)
     {
         var result = await _signInManager.PasswordSignInAsync(email, password, isPersistent: false, lockoutOnFailure: false);

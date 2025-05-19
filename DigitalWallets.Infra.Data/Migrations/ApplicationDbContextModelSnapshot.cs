@@ -44,6 +44,13 @@ namespace DigitalWallets.Infra.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.PrimitiveCollection<string[]>("Roles")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
                     b.HasKey("Id");
 
                     b.ToTable("AuthUser");
@@ -57,13 +64,29 @@ namespace DigitalWallets.Infra.Data.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("SenderId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
@@ -82,6 +105,15 @@ namespace DigitalWallets.Infra.Data.Migrations
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -159,6 +191,9 @@ namespace DigitalWallets.Infra.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<Guid?>("WalletId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
@@ -167,6 +202,8 @@ namespace DigitalWallets.Infra.Data.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
+
+                    b.HasIndex("WalletId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });
@@ -323,10 +360,19 @@ namespace DigitalWallets.Infra.Data.Migrations
             modelBuilder.Entity("DigitalWallets.Domain.Entities.Wallet", b =>
                 {
                     b.HasOne("DigitalWallets.Infra.Data.Identity.ApplicationUser", null)
-                        .WithOne("Wallet")
+                        .WithOne()
                         .HasForeignKey("DigitalWallets.Domain.Entities.Wallet", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("DigitalWallets.Infra.Data.Identity.ApplicationUser", b =>
+                {
+                    b.HasOne("DigitalWallets.Domain.Entities.Wallet", "Wallet")
+                        .WithMany()
+                        .HasForeignKey("WalletId");
+
+                    b.Navigation("Wallet");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -377,12 +423,6 @@ namespace DigitalWallets.Infra.Data.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("DigitalWallets.Infra.Data.Identity.ApplicationUser", b =>
-                {
-                    b.Navigation("Wallet")
                         .IsRequired();
                 });
 #pragma warning restore 612, 618

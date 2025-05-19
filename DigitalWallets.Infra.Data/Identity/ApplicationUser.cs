@@ -9,7 +9,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public string Name { get; set; }
     public string LastName { get;  set; }
     public string Phone { get;  set; }
-    public Wallet Wallet { get; set; } = null!;
+    public Wallet? Wallet { get; set; } = null!;
     public ApplicationUser() { }
     public ApplicationUser(AuthUser authUser)
     {
