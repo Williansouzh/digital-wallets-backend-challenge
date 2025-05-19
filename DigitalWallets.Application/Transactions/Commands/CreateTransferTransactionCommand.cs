@@ -8,4 +8,4 @@ public record CreateTransferTransactionCommand(
     Guid RecipientWalletId,
     decimal Amount,
     string Description
-) : IRequest<bool>;
+) : IRequest<Transaction>;

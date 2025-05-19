@@ -7,4 +7,4 @@ public record CreateDebitTransactionCommand(
     Guid WalletId,
     decimal Amount,
     string Description
-) : IRequest<bool>;
+) : IRequest<Transaction>;

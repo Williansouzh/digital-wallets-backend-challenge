@@ -1,8 +1,10 @@
 ﻿using DigitalWallets.Application.Transactions.Commands;
 using DigitalWallets.Domain.Interfaces.Repositories;
 using MediatR;
+using DigitalWallets.Domain.Entities;
 using DomainTransaction = DigitalWallets.Domain.Entities.Transaction;
-public class CreateCreditTransactionCommandHandler : IRequestHandler<CreateCreditTransactionCommand, bool>
+
+public class CreateCreditTransactionCommandHandler : IRequestHandler<CreateCreditTransactionCommand, Transaction>
 {
     private readonly ITransactionRepository _transactionRepository;
     private readonly IWalletRepository _walletRepository;
@@ -18,28 +20,27 @@ public class CreateCreditTransactionCommandHandler : IRequestHandler<CreateCredi
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<bool> Handle(CreateCreditTransactionCommand request, CancellationToken cancellationToken)
+    public async Task<Transaction> Handle(CreateCreditTransactionCommand request, CancellationToken cancellationToken)
     {
         var wallet = await _walletRepository.GetByUserIdWithUserAsync(request.WalletId, cancellationToken);
         if (wallet == null)
-            return false;
+            throw new ArgumentException("Wallet not found for the given user.");
 
         wallet.Credit(request.Amount);
 
-        var transaction = DomainTransaction.Create(
-            request.Amount,
-            request.Description,
-            DateTime.UtcNow,
-            Guid.Empty, // SenderId is empty for credit
-            null,       // Sender is null
-            wallet.UserId,
-            wallet.User
+        var transaction = DomainTransaction.CreateCredit(
+            amount: request.Amount,
+            description: request.Description,
+            recipientId: wallet.Id
         );
 
+        // 4. Persiste transação e carteira atualizada
         await _transactionRepository.AddAsync(transaction, cancellationToken);
         await _walletRepository.UpdateAsync(wallet, cancellationToken);
+
+        // 5. Efetiva a transação
         await _unitOfWork.CommitAsync(cancellationToken);
 
-        return true;
+        return transaction;
     }
 }

@@ -59,8 +59,15 @@ public class WalletService : IWalletService
 
             var command = new CreditWalletCommand(userId, amount);
             ValidateCommand(command);
+            var creditResult = await _mediator.Send(command, cancellationToken);
+            if (creditResult)
+            {
+                // Criar transação de crédito
+                var description = $"Credit of {amount} to wallet {userId}";
+                await _transactionService.CreateCreditAsync(userId, amount, description, cancellationToken);
+            }
 
-            return await _mediator.Send(command, cancellationToken);
+            return creditResult;
         }
         catch (Exception ex)
         {

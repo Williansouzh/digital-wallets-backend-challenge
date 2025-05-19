@@ -20,13 +20,32 @@ internal class TransactionEntityConfiguration : IEntityTypeConfiguration<Transac
             .IsRequired()
             .HasColumnType("decimal(18,2)");
 
+        entity.Property(t => t.Description)
+            .IsRequired()
+            .HasMaxLength(255);
+
         entity.Property(t => t.Timestamp)
             .IsRequired();
 
+        entity.Property(t => t.Status)
+            .IsRequired()
+            .HasConversion<string>();
+
+        entity.Property(t => t.Type)
+            .IsRequired()
+            .HasConversion<string>();
+
         entity.Property(t => t.SenderId)
-            .IsRequired();
+            .IsRequired(false); // Optional for credit transactions
 
         entity.Property(t => t.RecipientId)
-            .IsRequired();
+            .IsRequired(false); // Optional for debit transactions
+
+        // Indexes for query performance
+        entity.HasIndex(t => t.SenderId);
+        entity.HasIndex(t => t.RecipientId);
+        entity.HasIndex(t => t.Timestamp);
+        entity.HasIndex(t => t.Status);
+        entity.HasIndex(t => t.Type);
     }
 }

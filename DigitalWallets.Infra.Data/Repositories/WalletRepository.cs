@@ -35,7 +35,6 @@ public class WalletRepository : Repository<Wallet>, IWalletRepository
     public async Task<Wallet?> GetByUserIdWithUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.Wallets
-            .Include(w => w.UserId)
             .FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
     }
 

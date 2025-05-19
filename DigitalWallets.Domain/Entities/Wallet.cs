@@ -6,7 +6,7 @@ public class Wallet : Entity
 {
     public decimal Balance { get; private set; }
     public Guid UserId { get; private set; }
-    public AuthUser User { get; private set; }
+    //public AuthUser User { get; private set; }
     protected Wallet() { }
 
     public Wallet(Guid userId, decimal initialBalance = 0, Guid? id = null)

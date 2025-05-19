@@ -1,5 +1,4 @@
-﻿
-using System.Security.Authentication;
+﻿using System.Security.Authentication;
 using System.Security.Claims;
 using DigitalWallets.Domain.Account;
 using DigitalWallets.Domain.Entities;
@@ -7,6 +6,7 @@ using DigitalWallets.Domain.Interfaces.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace DigitalWallets.Infra.Data.Identity;
 
@@ -16,9 +16,10 @@ public class AuthenticateService : IAuthenticate
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    ILogger<AuthenticateService> _logger;
+    private readonly ILogger<AuthenticateService> _logger;
     private readonly IWalletRepository _walletRepository;
     private readonly ITransactionRepository _transactionRepository;
+
     public AuthenticateService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -36,55 +37,66 @@ public class AuthenticateService : IAuthenticate
         _walletRepository = walletRepository;
         _transactionRepository = transactionRepository;
     }
+
     public async Task<bool> RegisterUser(string email, string password, string role, string name, string lastName, string phone)
     {
-        var user = new ApplicationUser
+        using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+
+        try
         {
-            UserName = email,
-            Email = email,
-            Name = name,
-            LastName = lastName,
-            Phone = phone
-        };
-
-        var result = await _userManager.CreateAsync(user, password);
-
-        if (!result.Succeeded)
-        {
-            _logger.LogWarning("User registration failed: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
-            return false;
-        }
-        //Create Wallet
-        var wallet = new Wallet(user.Id, 0); // saldo inicial 0
-
-        await _walletRepository.AddAsync(wallet);
-
-        if (!await _roleManager.RoleExistsAsync(role))
-        {
-            var newRole = new IdentityRole<Guid>
+            var user = new ApplicationUser
             {
-                Id = Guid.NewGuid(),
-                Name = role,
-                NormalizedName = role.ToUpper()
+                UserName = email,
+                Email = email,
+                Name = name,
+                LastName = lastName,
+                Phone = phone
             };
 
-            await _roleManager.CreateAsync(newRole);
+            var result = await _userManager.CreateAsync(user, password);
+
+            if (!result.Succeeded)
+            {
+                _logger.LogWarning("User registration failed: {Errors}", string.Join(", ", result.Errors.Select(e => e.Description)));
+                return false;
+            }
+
+            var wallet = new Wallet(user.Id, 0);
+            await _walletRepository.AddAsync(wallet);
+
+            if (!await _roleManager.RoleExistsAsync(role))
+            {
+                var newRole = new IdentityRole<Guid>
+                {
+                    Id = Guid.NewGuid(),
+                    Name = role,
+                    NormalizedName = role.ToUpper()
+                };
+                await _roleManager.CreateAsync(newRole);
+            }
+
+            await _userManager.AddToRoleAsync(user, role);
+
+            // Register initial transaction
+            //var transaction = Domain.Entities.Transaction.Create(
+            //    amount: 0.1m,
+            //    description: "Wallet created",
+            //    timestamp: DateTime.UtcNow,
+            //    senderId: user.Id,
+            //    recipientId: user.Id 
+            //);
+
+            //await _transactionRepository.AddAsync(transaction);
+
+
+            scope.Complete();
+            return true;
         }
-
-        await _userManager.AddToRoleAsync(user, role);
-
-        //Add first transaction 
-        var transaction = await Transaction.Create(
-            0,
-            "Wallet created",
-            DateTime.UtcNow,
-            user.Id,
-            user,
-            Guid.Empty,
-            null
-        );
-
-        return true;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during user registration.");
+            return false;
+        }
     }
 
     public async Task<AuthUser> Authenticate(string email, string password)
@@ -97,6 +109,7 @@ public class AuthenticateService : IAuthenticate
         var user = await _userManager.FindByEmailAsync(email);
         if (user == null)
             throw new AuthenticationException("User not found.");
+
         return new AuthUser(
             user.Id,
             user.Name,
@@ -105,6 +118,7 @@ public class AuthenticateService : IAuthenticate
             user.Email
         );
     }
+
     public async Task Logout()
     {
         await _signInManager.SignOutAsync();
@@ -127,10 +141,9 @@ public class AuthenticateService : IAuthenticate
         return result.Succeeded;
     }
 
-
-    public async Task<bool> UpdateRefreshToken(string email, string newRefreshToken)
+    public Task<bool> UpdateRefreshToken(string email, string newRefreshToken)
     {
-        return await StoreRefreshToken(email, newRefreshToken);
+        return StoreRefreshToken(email, newRefreshToken);
     }
 
     public async Task<bool> ValidateRefreshToken(string email, string refreshToken)
@@ -143,6 +156,7 @@ public class AuthenticateService : IAuthenticate
 
         return storedRefreshToken == refreshToken;
     }
+
     public async Task<AuthUser?> GetCurrentUser()
     {
         var principal = _httpContextAccessor.HttpContext?.User;
@@ -154,7 +168,7 @@ public class AuthenticateService : IAuthenticate
         var roles = await _userManager.GetRolesAsync(user);
 
         return new AuthUser(
-            user.Id, 
+            user.Id,
             user.Name,
             user.LastName,
             user.Phone,
@@ -164,6 +178,7 @@ public class AuthenticateService : IAuthenticate
             Roles = roles
         };
     }
+
     public async Task<bool> IsUserLoggedIn()
     {
         var user = await _userManager.GetUserAsync(_httpContextAccessor.HttpContext.User);

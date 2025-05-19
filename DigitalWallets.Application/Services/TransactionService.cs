@@ -56,14 +56,14 @@ public class TransactionService : ITransactionService
             transactionDto.Description
         );
 
-        var success = await _mediator.Send(command, cancellationToken);
-        if (!success)
+        var transaction = await _mediator.Send(command, cancellationToken);
+        if (transaction == null)
         {
             _logger.LogWarning("Transaction creation failed");
             throw new ApplicationException("Transaction creation failed");
         }
 
-        return transactionDto;
+        return _mapper.Map<TransactionDTO>(transaction);
     }
 
     public async Task<bool> DeleteTransactionAsync(Guid id, CancellationToken cancellationToken = default)
@@ -101,13 +101,13 @@ public class TransactionService : ITransactionService
             transactionDto.Status
         );
 
-        var success = await _mediator.Send(command, cancellationToken);
-        if (!success)
+        var transaction = await _mediator.Send(command, cancellationToken);
+        if (transaction == null)
         {
             _logger.LogWarning("Transaction update failed for ID: {TransactionId}", id);
             throw new ApplicationException("Transaction update failed");
         }
 
-        return transactionDto;
+        return _mapper.Map<TransactionDTO>(transaction);
     }
 }
